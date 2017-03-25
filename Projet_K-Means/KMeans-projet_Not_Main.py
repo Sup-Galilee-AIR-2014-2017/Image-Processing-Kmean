@@ -2,6 +2,11 @@ import cv2
 import numpy
 import random
 
+# def TestBarycentreBleu(groupe, bleu, K, nb_pixels):
+#     cluster_bleuT = numpy.zeros(K)
+#     for k in range(0, K):
+#         if (comp[k] != 0):
+#             cluster_bleuT[k] = W[k, 0] / comp[k]
 
 def MoveGraineToBarycentre(groupe, bleu, vert, rouge, cluster_bleu, cluster_rouge, cluster_vert, K, nb_pixels):
     # On parcourt chaque cluster (chaque graine)
@@ -50,11 +55,14 @@ def AttributionKMeans(groupe, bleu, rouge, vert, cluster_bleu , cluster_rouge, c
     for pixel in range(0, nb_pixels):
         distance_graine = numpy.zeros(K)
 
-        #distance_graine[0:K-1] = CalculeModule(vert[pixel,0], rouge[pixel,0], bleu[pixel,0], cluster_vert[0:K-1], cluster_rouge[0:K-1], cluster_bleu[0:K-1])
-        distance_graine[0:K] = CalculeModule(vert[pixel, 0], rouge[pixel, 0], bleu[pixel, 0], cluster_vert[0:K], cluster_rouge[0:K], cluster_bleu[0:K])
+        distance_graine[0:K] = CalculeModule(vert[pixel,0], rouge[pixel,0], bleu[pixel,0], cluster_vert[0:K], cluster_rouge[0:K], cluster_bleu[0:K])
 
         # for graine in range(0, K):
         #     distance_graine[graine] = CalculeModule(vert[pixel,0], rouge[pixel,0], bleu[pixel,0], cluster_vert[graine], cluster_rouge[graine], cluster_bleu[graine])
+
+        # distance_Test = numpy.zeros(distance_graine.shape, distance_graine.dtype)
+        # for graine in range(0, K):
+        #     distance_Test[graine] = CalculeModule(vert[pixel,0], rouge[pixel,0], bleu[pixel,0], cluster_vert[graine], cluster_rouge[graine], cluster_bleu[graine])
 
         graineMinimale = 0
         distance_min = distance_graine[0]
@@ -128,10 +136,16 @@ def main():
     ####### Debut code eleves #######
         #########################
 
+    for graine in range(0, K):
+        cluster_bleu[graine] = random.randint(0,256)
+        cluster_rouge[graine] = random.randint(0,256)
+        cluster_vert[graine] = random.randint(0,256)
+
+
+
     distanceReferenceDiagonaleCoordonneesCouleurs = CalculeModule(0,0, 0, 255, 255, 255) # numpy.sqrt(3 * numpy.power(255, 2)) # Reference par rapport a laquelle le pourcentage d'avancement d'une graine est calcule
     seuilPourcentageMouvementDeGraine = 5 # Pourcentage d'avancement maximum d'une graine pour que celle-ci soit consideree comme stable.
-    compteurDeStabilite = 0 # Compteur utilise pour le cas ou toutes les graines ne bougent plus beaucoup, mais que certaines graines (au moins une) persistent a effectuer des mouvement encore trop grand par rapport au seuil maximum de mouvement que l'on a fixe
-
+    compteurDeStabilite = 0  # Compteur utilise pour le cas ou toutes les graines ne bougent plus beaucoup, mais que certaines graines (au moins une) persistent a effectuer des mouvement encore trop grand par rapport au seuil maximum de mouvement que l'on a fixe
 
     distancesAnciensNouveauxBarycentres = numpy.zeros(K)
     pourcentageAvancementGraine = numpy.zeros(K)
@@ -141,6 +155,10 @@ def main():
 
     # Debut boucle
     while(not stabiliteBoucle):
+
+
+        # Attribution des pixels aux clusters dont les graines sont les plus proches des pixels
+        AttributionKMeans(groupe,bleu, rouge, vert, cluster_bleu, cluster_rouge, cluster_vert, K, nb_pixels)
 
         # On stocke les anciennes positions des graines afin de pouvoir determiner plus tard la stabilite du mouvement des graines (en calculant le taux d'avancement des graines)
         oldBarycentres_bleu = cluster_bleu.copy()
@@ -159,7 +177,6 @@ def main():
                 estStable = False
         stabiliteBoucle = estStable
 
-
         # Seconde detection de stabilite (si blocage)
         moyennePourcentageAvancement = numpy.sum(pourcentageAvancementGraine) / numpy.count_nonzero(pourcentageAvancementGraine)
         if(moyennePourcentageAvancement <= seuilPourcentageMouvementDeGraine):
@@ -170,11 +187,10 @@ def main():
 
 
 
-        # Attribution des pixels aux clusters dont les graines sont les plus proches des pixels
-        AttributionKMeans(groupe,bleu, rouge, vert, cluster_bleu, cluster_rouge, cluster_vert, K, nb_pixels)
+    # exit(0)
 
-    nbCouleursFinales = numpy.count_nonzero(pourcentageAvancementGraine)
-    print "Nombre de couleurs finales = " + str(nbCouleursFinales)
+
+
 
         #######################
     ####### Fin code eleves #######
