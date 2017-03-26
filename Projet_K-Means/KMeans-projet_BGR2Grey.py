@@ -3,59 +3,48 @@ import numpy
 import random
 
 
-def MoveGraineToBarycentre(groupe, bleu, vert, rouge, cluster_bleu, cluster_rouge, cluster_vert, K, nb_pixels):
+def MoveGraineToBarycentre(groupe, bleu, cluster_bleu, K, nb_pixels):
     # On parcourt chaque cluster (chaque graine)
     for i in range(0, K):
         #La formule du barycentre, pour chaque coordonnee (on prend ici x, Xn etant l'ensemble des x de cardinal valant n), vaut Bar(Xn) = (Somme des x) / n
         nombreElementsDansCluster = 0;
 
         somme_bleu = 0
-        somme_rouge = 0
-        somme_vert = 0
 
         for pixel in range(0, nb_pixels):
             if(groupe[pixel, 0] == i):
                 nombreElementsDansCluster += 1
                 somme_bleu += bleu[pixel, 0]
-                somme_rouge += rouge[pixel, 0]
-                somme_vert += vert[pixel, 0]
 
 
         # On fait avancer la graine d'un certain 'pourcentage' qu'on fixe
         pourcentageAvancement = 0.5
         if(nombreElementsDansCluster > 0):
             barycentre_bleu = somme_bleu / nombreElementsDansCluster;
-            barycentre_rouge = somme_rouge / nombreElementsDansCluster;
-            barycentre_vert = somme_vert / nombreElementsDansCluster;
 
             cluster_bleu[i] = numpy.round( cluster_bleu[i] +   ( (barycentre_bleu - cluster_bleu[i]) * pourcentageAvancement ) );
-            cluster_rouge[i] = numpy.round( cluster_rouge[i] +   ( (barycentre_rouge - cluster_rouge[i]) * pourcentageAvancement ) );
-            cluster_vert[i] = numpy.round( cluster_vert[i] +   ( (barycentre_vert - cluster_vert[i]) * pourcentageAvancement ) );
 
         # if(nombreElementsDansCluster > 0):
             # cluster_bleu[i] = somme_bleu / nombreElementsDansCluster;
             # cluster_rouge[i] = somme_rouge / nombreElementsDansCluster;
             # cluster_vert[i] = somme_vert / nombreElementsDansCluster;
 
-def CalculeModule(debut_vert, debut_rouge, debut_bleu, fin_vert, fin_rouge, fin_bleu):
+def CalculeModule(debut_bleu, fin_bleu):
 
-    te1 = numpy.power(fin_vert - debut_vert, 2)
-    tee1 = (fin_vert - debut_vert)**2
-    te2 = numpy.power(fin_rouge - debut_rouge, 2)
     te3 = numpy.power(fin_bleu - debut_bleu, 2)
 
-    return numpy.sqrt( numpy.power(fin_vert - debut_vert, 2) + numpy.power(fin_rouge - debut_rouge, 2) + numpy.power(fin_bleu - debut_bleu, 2) )
+    return numpy.sqrt( numpy.power(fin_bleu - debut_bleu, 2) )
 
 def AfficherImage(image):
     cv2.imshow("image", image)
     key = cv2.waitKey(0)
 
-def AttributionKMeans(groupe, bleu, rouge, vert, cluster_bleu , cluster_rouge, cluster_vert, K, nb_pixels):
+def AttributionKMeans(groupe, bleu, cluster_bleu , K, nb_pixels):
     for pixel in range(0, nb_pixels):
         distance_graine = numpy.zeros(K)
 
         #distance_graine[0:K-1] = CalculeModule(vert[pixel,0], rouge[pixel,0], bleu[pixel,0], cluster_vert[0:K-1], cluster_rouge[0:K-1], cluster_bleu[0:K-1])
-        distance_graine[0:K] = CalculeModule(vert[pixel, 0], rouge[pixel, 0], bleu[pixel, 0], cluster_vert[0:K], cluster_rouge[0:K], cluster_bleu[0:K])
+        distance_graine[0:K] = CalculeModule(bleu[pixel, 0], cluster_bleu[0:K])
 
         # for graine in range(0, K):
         #     distance_graine[graine] = CalculeModule(vert[pixel,0], rouge[pixel,0], bleu[pixel,0], cluster_vert[graine], cluster_rouge[graine], cluster_bleu[graine])
@@ -77,12 +66,14 @@ def main():
     MAX_HAUTEUR = 400
 
     # K = 32 #Le fameux parametre K de l'algorithme
-    K = 32
+    K = 2
 
 
     # Charger l'image et la reduire si trop grande (sinon, on risque de passer trop de temps sur le calcul...)
     imagecolor = cv2.imread('perr.jpg')
 
+    imagecolor = cv2.cvtColor(imagecolor, cv2.COLOR_BGR2GRAY)
+    AfficherImage(imagecolor)
 
     if imagecolor.shape[0] > MAX_LARGEUR or imagecolor.shape[1] > MAX_HAUTEUR:
         factor1 = float(MAX_LARGEUR) / imagecolor.shape[0]
@@ -97,24 +88,24 @@ def main():
 
 
     # On affiche une fenetre avec l'image
-    cv2.namedWindow("image")
+    # cv2.namedWindow("image")
     #On sort quand l'utilisateur appuie sur une touche
-    cv2.imshow("image", imagecolor)
-    key = cv2.waitKey(0)
+    # cv2.imshow("image", imagecolor)
+    # key = cv2.waitKey(0)
 
 
     #Les coordonnees BRV de tous les pixels de l'image (les elements de E)
-    bleu = imagecolor[:, :, 0].reshape(nb_pixels, 1)
-    vert = imagecolor[:, :, 1].reshape(nb_pixels, 1)
-    rouge = imagecolor[:, :, 2].reshape(nb_pixels, 1)
+    bleu = imagecolor[:, :].reshape(nb_pixels, 1)
+    # vert = imagecolor[:, :, 1].reshape(nb_pixels, 1)
+    # rouge = imagecolor[:, :, 2].reshape(nb_pixels, 1)
 
 
 
 
     #Les coordonnees BRV de chaque point-cluster (chaque graines = les elements de N)
     cluster_bleu = numpy.zeros(K)
-    cluster_vert = numpy.zeros(K)
-    cluster_rouge = numpy.zeros(K)
+    # cluster_vert = numpy.zeros(K)
+    # cluster_rouge = numpy.zeros(K)
 
 
     #Ce tableau permet de connaitre, pour chaque pixel de l'image, a quel cluster il appartient
@@ -134,7 +125,7 @@ def main():
     ####### Debut code eleves #######
         #########################
 
-    distanceReferenceDiagonaleCoordonneesCouleurs = CalculeModule(0,0, 0, 255, 255, 255) # numpy.sqrt(3 * numpy.power(255, 2)) # Reference par rapport a laquelle le pourcentage d'avancement d'une graine est calcule
+    distanceReferenceDiagonaleCoordonneesCouleurs = CalculeModule(0, 255) # numpy.sqrt(3 * numpy.power(255, 2)) # Reference par rapport a laquelle le pourcentage d'avancement d'une graine est calcule
     seuilPourcentageMouvementDeGraine = 5 # Pourcentage d'avancement maximum d'une graine pour que celle-ci soit consideree comme stable.
     compteurDeStabilite = 0 # Compteur utilise pour le cas ou toutes les graines ne bougent plus beaucoup, mais que certaines graines (au moins une) persistent a effectuer des mouvement encore trop grand par rapport au seuil maximum de mouvement que l'on a fixe
 
@@ -150,16 +141,14 @@ def main():
 
         # On stocke les anciennes positions des graines afin de pouvoir determiner plus tard la stabilite du mouvement des graines (en calculant le taux d'avancement des graines)
         oldBarycentres_bleu = cluster_bleu.copy()
-        oldBarycentres_rouge = cluster_rouge.copy()
-        oldBarycentres_vert = cluster_vert.copy()
 
         # Calcul du barycentre des cluster et attribution des nouvelles positions des graines
-        MoveGraineToBarycentre(groupe,bleu, vert, rouge, cluster_bleu, cluster_rouge,cluster_vert, K, nb_pixels)
+        MoveGraineToBarycentre(groupe,bleu, cluster_bleu, K, nb_pixels)
 
         # Calcul de stabilite du mouvement des graines par rapport a leur ancienne position
         estStable = True
         for graine in range(0, K):
-            distancesAnciensNouveauxBarycentres[graine] = CalculeModule(oldBarycentres_vert[graine], oldBarycentres_rouge[graine], oldBarycentres_bleu[graine], cluster_vert[graine],cluster_rouge[graine], cluster_bleu[graine])
+            distancesAnciensNouveauxBarycentres[graine] = CalculeModule(oldBarycentres_bleu[graine], cluster_bleu[graine])
             pourcentageAvancementGraine[graine] = (distancesAnciensNouveauxBarycentres[graine] * 100) / distanceReferenceDiagonaleCoordonneesCouleurs
             if(pourcentageAvancementGraine[graine] > seuilPourcentageMouvementDeGraine):
                 estStable = False
@@ -177,7 +166,7 @@ def main():
 
 
         # Attribution des pixels aux clusters dont les graines sont les plus proches des pixels
-        AttributionKMeans(groupe,bleu, rouge, vert, cluster_bleu, cluster_rouge, cluster_vert, K, nb_pixels)
+        AttributionKMeans(groupe,bleu, cluster_bleu, K, nb_pixels)
 
     nbCouleursFinales = numpy.count_nonzero(pourcentageAvancementGraine)
     print "Nombre de couleurs finales = " + str(nbCouleursFinales)
@@ -212,9 +201,7 @@ def main():
         for j in range(0, imagecolor.shape[1]):
             # test = groupe[i,j]
             # b = cluster_bleu[test]
-            imagecolor[i,j,0] = (cluster_bleu[groupe[i,j]])
-            imagecolor[i,j,1] = (cluster_vert[groupe[i,j]])
-            imagecolor[i,j,2] = (cluster_rouge[groupe[i,j]])
+            imagecolor[i,j] = (cluster_bleu[groupe[i,j]])
 
 
 

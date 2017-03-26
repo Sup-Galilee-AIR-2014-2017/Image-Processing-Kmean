@@ -83,6 +83,8 @@ def main():
     # Charger l'image et la reduire si trop grande (sinon, on risque de passer trop de temps sur le calcul...)
     imagecolor = cv2.imread('perr.jpg')
 
+    imagecolor = cv2.cvtColor(imagecolor, cv2.COLOR_BGR2Lab)
+    AfficherImage(imagecolor)
 
     if imagecolor.shape[0] > MAX_LARGEUR or imagecolor.shape[1] > MAX_HAUTEUR:
         factor1 = float(MAX_LARGEUR) / imagecolor.shape[0]
@@ -97,10 +99,10 @@ def main():
 
 
     # On affiche une fenetre avec l'image
-    cv2.namedWindow("image")
+    # cv2.namedWindow("image")
     #On sort quand l'utilisateur appuie sur une touche
-    cv2.imshow("image", imagecolor)
-    key = cv2.waitKey(0)
+    # cv2.imshow("image", imagecolor)
+    # key = cv2.waitKey(0)
 
 
     #Les coordonnees BRV de tous les pixels de l'image (les elements de E)
